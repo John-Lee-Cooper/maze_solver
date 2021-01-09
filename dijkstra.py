@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from heapq import heappop, heappush
-from typing import Generator, List, Tuple, Dict
+from typing import Dict, Generator, Tuple
 
 
 class Node:
@@ -44,6 +44,7 @@ class Network(ABC):
         """
         if self._dijkstra(src_node, dst_node):
             return dst_node.path()
+        return None
 
     def _dijkstra(self, src_node: Node, dst_node: Node) -> bool:
         """

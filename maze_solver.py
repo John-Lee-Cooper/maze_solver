@@ -5,16 +5,14 @@ https://scipython.com/blog/making-a-maze/
 """
 
 import sys
-from typing import Generator, List, Tuple, Dict, Optional
-from pathlib import Path
+from typing import Dict, Generator, Optional, Tuple
 
 import cv2 as cv
 import numpy as np
 
-from param import Param
-from dijkstra import Node, Network
+from dijkstra import Network, Node
 from frame_writer import FrameWriter
-
+from param import Param
 
 Image = np.ndarray
 Color = Tuple[int, ...]
