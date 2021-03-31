@@ -65,3 +65,9 @@ Any contributions you make are **greatly appreciated**.
 
 John Lee Cooper  
 john.lee.cooper@gatech.edu
+
+
+## Reference
+
+[ref](https://answers.opencv.org/question/84435/is-there-a-guo-hall-thinning-method-in-opencv-310/)
+

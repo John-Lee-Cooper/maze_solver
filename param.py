@@ -55,7 +55,4 @@ class Param:
         Adjust parameters given a key event.
         Return whether the value was adjusted
         """
-        for param in cls.registered:
-            if param.adjust(key):
-                return True
-        return False
+        return any(param.adjust(key) for param in cls.registered)
