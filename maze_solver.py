@@ -5,7 +5,8 @@ https://scipython.com/blog/making-a-maze/
 """
 
 import sys
-from typing import Dict, Generator, Optional, Tuple
+import typing as t
+from pathlib import Path
 
 import cv2 as cv
 import numpy as np
@@ -13,16 +14,19 @@ import numpy as np
 from dijkstra import Network, Node
 from frame_writer import FrameWriter
 from param import Param
+from create_gif import create_gif
 
 Image = np.ndarray
-Color = Tuple[int, ...]
-Vertex = Tuple[int, int]
+Color = t.Tuple[int, ...]
+Vertex = t.Tuple[int, int]
 
 ESCAPE = 27
+INTERACTIVE = False
+dir_path = Path("frames")
 
 
-class Node2(Node):
-    """ 3dof extension for Node """
+class Maze_Node(Node):
+    """3dof extension for Node"""
 
     def __init__(self, x, y):
         super().__init__()
@@ -35,12 +39,12 @@ class Node2(Node):
         return f"({self.x}, {self.y})"
 
     def vertex(self) -> Vertex:
-        """ Return state as a vertex for drawing """
+        """Return state as a vertex for drawing"""
         return self.x, self.y
 
 
-class Network2(Network):
-    """ Provide a network for an image """
+class Maze_Network(Network):
+    """Provide a network for an image"""
 
     # Allow solver to go diagonally with the cost of sqrt(2)
     moves = (
@@ -55,15 +59,16 @@ class Network2(Network):
     )
 
     def __init__(self, image: Image, gray: Image):
-        super().__init__(self._build_nodes(gray))
+        #super().__init__(self._build_nodes(gray))
+        self.nodes = self._build_nodes(gray)
 
         # For _display()
         self.image = image
         self.steps = 0
         self.draw_on = 0
 
-    def _neighbors(self, node: Node2) -> Tuple[Node, int]:
-        """ Yield neighbors to node, and the cost to get there """
+    def _neighbors(self, node: Maze_Node) -> t.Tuple[Node, int]:
+        """Yield neighbors to node, and the cost to get there"""
 
         x = node.x
         y = node.y
@@ -74,7 +79,7 @@ class Network2(Network):
                 yield neighbor_node, cost
 
     def _display(self, curr_node: Node) -> None:
-        """ Periodically draw the current best solution """
+        """Periodically draw the current best solution"""
 
         if self.steps < self.draw_on:
             self.steps += 1
@@ -86,10 +91,10 @@ class Network2(Network):
         image = self.image.copy()
         draw_path(image, curr_node.path())
         show(image, 1)
-        FrameWriter.write(image)
+        FrameWriter.write(dir_path, image)
 
     @staticmethod
-    def _build_nodes(image: Image) -> Dict[Tuple, Node]:
+    def _build_nodes(image: Image) -> t.Dict[t.Tuple, Node]:
         """
         Convert a OpenCV image into a dictionary of nodes - indexed by col, row
         where every non-zero pixel is a node.
@@ -101,11 +106,11 @@ class Network2(Network):
         for row in rows:
             for col in cols:
                 if image[row, col]:
-                    nodes[col, row] = Node2(col, row)
+                    nodes[col, row] = Maze_Node(col, row)
         return nodes
 
-    def find_shortest_path(self, start: Vertex, finish: Vertex) -> Generator:
-        """ Convert start and finish to nodes and return shortest path """
+    def find_shortest_path(self, start: Vertex, finish: Vertex) -> t.Generator:
+        """Convert start and finish to nodes and return shortest path"""
 
         src_node = self.nodes[start]
         dst_node = self.nodes[finish]
@@ -113,9 +118,9 @@ class Network2(Network):
 
 
 def draw_path(
-    image: Image, path: Generator, thickness: int = 2, color: Color = (0, 0, 256)
+    image: Image, path: t.Generator, thickness: int = 2, color: Color = (0, 0, 256)
 ) -> None:
-    """Draw the path - path is a list of nodes """
+    """Draw the path - path is a list of nodes"""
 
     if not path:
         return
@@ -127,8 +132,8 @@ def draw_path(
         v0 = v1
 
 
-def show(image: Image, wait: Optional[int] = 0, name: str = "maze") -> None:
-    """ Show the image.  If wait is not none, pause for wait ms """
+def show(image: Image, wait: t.Optional[int] = 0, name: str = "maze") -> None:
+    """Show the image.  If wait is not none, pause for wait ms"""
 
     cv.imshow(name, image)
     cv.moveWindow(name, 10, 10)
@@ -139,9 +144,9 @@ def show(image: Image, wait: Optional[int] = 0, name: str = "maze") -> None:
 
 
 def morph_open(
-    image: Image, k1: int = 3, k2: Optional[int] = None, shape: int = cv.MORPH_CROSS
+    image: Image, k1: int = 3, k2: t.Optional[int] = None, shape: int = cv.MORPH_CROSS
 ) -> Image:
-    """ Return the image opened using k1xk2 shape kernel """
+    """Return the image opened using k1xk2 shape kernel"""
     if k1 <= 0:
         return image
     kernel = cv.getStructuringElement(shape, (k1, k2 or k1))
@@ -149,7 +154,7 @@ def morph_open(
 
 
 def preprocess(image: Image) -> Image:
-    """ Convert the image to greyscale and return the result of OTSU thresholding """
+    """Convert the image to greyscale and return the result of OTSU thresholding"""
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
     # blur = cv.medianBlur(image, blur)
     # gray = cv.adaptiveThreshold(blur, 255, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 11, 2)
@@ -161,7 +166,7 @@ def preprocess(image: Image) -> Image:
 def square(
     image: Image, center: Vertex, size: int, color: Color, thickness: int = -1
 ) -> None:
-    """ Draw a size x size square on the image centered at vertex, using color and thickness """
+    """Draw a size x size square on the image centered at vertex, using color and thickness"""
     delta = size // 2
     tl = center[0] - delta, center[1] - delta
     br = center[0] + delta, center[1] + delta
@@ -171,13 +176,13 @@ def square(
 def overlay_start_finish(
     image: Image, start: Vertex, finish: Vertex, radius: int = 6
 ) -> None:
-    """ Draw a green square at the start and red square at then end """
+    """Draw a green square at the start and red square at then end"""
     square(image, start, radius, color=(0, 128, 0))
     square(image, finish, radius, color=(0, 0, 255))
 
 
 def find_nearest(image: Image, loc: Vertex) -> Vertex:
-    """ Return the location of the closest non-zero pixel in image to loc """
+    """Return the location of the closest non-zero pixel in image to loc"""
     col, row = loc
     rows, cols = image.shape
     for k in range(100):
@@ -191,10 +196,10 @@ def find_nearest(image: Image, loc: Vertex) -> Vertex:
 
 
 def mask(image: Image, start: Vertex, finish: Vertex) -> None:
-    """ Zero out pixels that are 'outside' of the start and finish region """
+    """Zero out pixels that are 'outside' of the start and finish region"""
 
-    def xxx(a, b, i, n):
-        """ TODO """
+    def gate(a, b, i, n):
+        """TODO"""
         if i < n // 8:
             a = max(a, i)
         elif i > n * 7 // 8:
@@ -203,11 +208,12 @@ def mask(image: Image, start: Vertex, finish: Vertex) -> None:
 
     rows, cols = image.shape
     l, r = 0, cols
+    l, r = gate(l, r, start[0], cols)
+    l, r = gate(l, r, finish[0], cols)
+
     t, b = 0, rows
-    l, r = xxx(l, r, start[0], cols)
-    t, b = xxx(t, b, start[1], rows)
-    l, r = xxx(l, r, finish[0], cols)
-    t, b = xxx(t, b, finish[1], rows)
+    t, b = gate(t, b, start[1], rows)
+    t, b = gate(t, b, finish[1], rows)
 
     if l > 2:
         image[:, : l - 1] = 0
@@ -219,22 +225,8 @@ def mask(image: Image, start: Vertex, finish: Vertex) -> None:
         image[b + 2 :, :] = 0
 
 
-def setup(
-    image: Image, start: Vertex, finish: Vertex, show_thinned: bool = False
-) -> Tuple[Network, Vertex, Vertex]:
-    """
-    Load and display image.
-    Calculate the thinned image and convert it to a network.
-    Allow user to modify start and finish points.
-    """
-
-    gray = preprocess(image)
-
-    gray = morph_open(gray, 3)
-
-    thinned = cv.ximgproc.thinning(gray)
-
-    # Allow user to modify
+def user_setup():
+    """Allow user to modify"""
     step = 1
     Param.registered = []  # reset
     stop = Param(0, "", [ESCAPE])
@@ -264,44 +256,73 @@ def setup(
         if stop.value:
             sys.exit(0)
 
+
+def setup(
+    image: Image,
+    start: Vertex,
+    finish: Vertex,
+    show_thinned: bool = False,
+) -> t.Tuple[Network, Vertex, Vertex]:
+    """
+    Load and display image.
+    Calculate the thinned image and convert it to a network.
+    Allow user to modify start and finish points.
+    """
+
+    gray = preprocess(image)
+    gray = morph_open(gray, 3)
+    thinned = cv.ximgproc.thinning(gray)
+
+    if INTERACTIVE:
+        user_setup()
+
     mask(thinned, start, finish)
-    network = Network2(image, thinned)
+    network = Maze_Network(image, thinned)
     return network, start, finish
 
 
-def main(config) -> None:
-    """ TODO """
+def clear_folder(directory: Path):
+    for file in directory.glob("*"):
+        try:
+            file.unlink()
+        except OSError as e:
+            print(f"Error: {file} : {e.strerror}")
 
-    image_path, start, finish = config
-    image = cv.imread(image_path)
 
-    FrameWriter.write(image)
+def main(image_path, start, finish) -> None:
+    """TODO"""
 
-    # Setup network
+    image = cv.imread(str(image_path))
+
+    clear_folder(dir_path)
+    FrameWriter.write(dir_path, image)
+
+    # Build network from image
     network, start, finish = setup(image, start, finish)
 
-    # Find solution
+    # Find solution (shortest path from start to finish)
     path = network.find_shortest_path(start, finish)
 
     # Draw solution
     draw_path(image, path)
     overlay_start_finish(image, start, finish)
-    show(image)
-    FrameWriter.write(image)
+    if INTERACTIVE:
+        show(image)
+    FrameWriter.write(dir_path, image)
+
+    create_gif(f"{image_path.stem}.gif", str(dir_path))
 
 
 if __name__ == "__main__":
-    configs = (
+    for image_path, start, finish in (
         ("mazes/maze1.jpg", (72, 437), (964, 508)),
         ("mazes/maze2.jpg", (23, 512), (987, 512)),
         ("mazes/maze3.jpg", (644, 8), (655, 860)),
-        ("mazes/maze4.jpg", (650, 650), (660, 12)),
-        ("mazes/maze5.jpg", (43, 332), (309, 330)),
+        # Broken ("mazes/maze4.jpg", (650, 650), (660, 12)),
+        # Broken ("mazes/maze5.jpg", (43, 332), (309, 330)),
         ("mazes/maze6.png", (0, 212), (440, 207)),
         ("mazes/maze6.png", (446, 437), (620, 0)),
-        ("mazes/maze7.png", (13, 13), (499, 500)),
+        # Broken ("mazes/maze7.png", (13, 13), (499, 500)),
         ("mazes/maze8.png", (254, 16), (331, 309)),
-    )
-
-    for c in configs:
-        main(c)
+    ):
+        main(Path(image_path), start, finish)

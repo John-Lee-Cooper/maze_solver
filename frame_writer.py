@@ -12,8 +12,8 @@ class FrameWriter:
     frame = 0
 
     @classmethod
-    def write(cls, image):
-        dir_path = Path("frames")
+    def write(cls, dir_path, image):
+
         if cls.frame == 0:
             delete_contents(dir_path)
         cls.frame += 1
