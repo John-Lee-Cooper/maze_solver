@@ -1,4 +1,6 @@
-from pathlib import Path
+"""
+DOCSTRING
+"""
 
 import cv2 as cv
 
@@ -13,7 +15,6 @@ class FrameWriter:
 
     @classmethod
     def write(cls, dir_path, image):
-
         if cls.frame == 0:
             delete_contents(dir_path)
         cls.frame += 1

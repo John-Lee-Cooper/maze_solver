@@ -11,10 +11,10 @@ from pathlib import Path
 import cv2 as cv
 import numpy as np
 
+from create_gif import create_gif
 from dijkstra import Network, Node
 from frame_writer import FrameWriter
 from param import Param
-from create_gif import create_gif
 
 Image = np.ndarray
 Color = t.Tuple[int, ...]
@@ -25,7 +25,7 @@ INTERACTIVE = False
 dir_path = Path("frames")
 
 
-class Maze_Node(Node):
+class MazeNode(Node):
     """3dof extension for Node"""
 
     def __init__(self, x, y):
@@ -43,7 +43,7 @@ class Maze_Node(Node):
         return self.x, self.y
 
 
-class Maze_Network(Network):
+class MazeNetwork(Network):
     """Provide a network for an image"""
 
     # Allow solver to go diagonally with the cost of sqrt(2)
@@ -59,7 +59,7 @@ class Maze_Network(Network):
     )
 
     def __init__(self, image: Image, gray: Image):
-        #super().__init__(self._build_nodes(gray))
+        # super().__init__(self._build_nodes(gray))
         self.nodes = self._build_nodes(gray)
 
         # For _display()
@@ -67,7 +67,7 @@ class Maze_Network(Network):
         self.steps = 0
         self.draw_on = 0
 
-    def _neighbors(self, node: Maze_Node) -> t.Tuple[Node, int]:
+    def _neighbors(self, node: MazeNode) -> t.Tuple[Node, int]:
         """Yield neighbors to node, and the cost to get there"""
 
         x = node.x
@@ -106,7 +106,7 @@ class Maze_Network(Network):
         for row in rows:
             for col in cols:
                 if image[row, col]:
-                    nodes[col, row] = Maze_Node(col, row)
+                    nodes[col, row] = MazeNode(col, row)
         return nodes
 
     def find_shortest_path(self, start: Vertex, finish: Vertex) -> t.Generator:
@@ -225,7 +225,9 @@ def mask(image: Image, start: Vertex, finish: Vertex) -> None:
         image[b + 2 :, :] = 0
 
 
-def user_setup():
+def user_setup(
+    image: Image, start: Vertex, finish: Vertex, show_thinned: bool, gray: Image, thinned: Image
+):
     """Allow user to modify"""
     step = 1
     Param.registered = []  # reset
@@ -237,7 +239,6 @@ def user_setup():
     finish_y = Param(finish[1], "i", "k", maximum=image.shape[0] - 1, step=step)
 
     while not done.value:
-
         start = find_nearest(thinned, (start_x.value, start_y.value))
         finish = find_nearest(thinned, (finish_x.value, finish_y.value))
 
@@ -274,14 +275,15 @@ def setup(
     thinned = cv.ximgproc.thinning(gray)
 
     if INTERACTIVE:
-        user_setup()
+        user_setup(image, start, finish, show_thinned, gray, thinned)
 
     mask(thinned, start, finish)
-    network = Maze_Network(image, thinned)
+    network = MazeNetwork(image, thinned)
     return network, start, finish
 
 
 def clear_folder(directory: Path):
+    directory.mkdir(exist_ok=True)
     for file in directory.glob("*"):
         try:
             file.unlink()

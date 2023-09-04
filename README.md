@@ -23,7 +23,7 @@ source venv/bin/activate
 ## Usage
 
 ```bash
-./maze_solver.py
+src/maze_solver.py
 ```
  Key    | Result
  :---:  | :---

@@ -4,14 +4,13 @@
 
 from abc import ABC, abstractmethod
 from heapq import heappop, heappush
-from typing import Dict, Generator, Tuple, List, Any
+from typing import Any, Generator, Tuple
 
 
 class Node:
     """Node class for dijkstra"""
 
     def __init__(self):
-
         self.explored = False
         self.prev = None
         self.cost = float("inf")  # distance from source
@@ -81,7 +80,6 @@ class Network(ABC):
 
 # ---------------------------------------------------------------------------------------------------
 class TestNode(Node):
-
     def __init__(self, name):
         super().__init__()
         self.name = name
@@ -92,6 +90,7 @@ class TestNode(Node):
 
 class TestNetwork(Network):
     """Test of dijkstra from Algorithms by Sanjoy Dasgupta p.111"""
+
     node = {
         "A": TestNode("A"),
         "B": TestNode("B"),
@@ -100,16 +99,18 @@ class TestNetwork(Network):
         "E": TestNode("E"),
     }
     neighbor = {
-        "A": (('B', 4), ('C', 2), ),
-        "B": (('C', 3), ('D', 2), ('E', 3)),
-        "C": (('B', 1), ('D', 4), ('E', 5)),
+        "A": (
+            ("B", 4),
+            ("C", 2),
+        ),
+        "B": (("C", 3), ("D", 2), ("E", 3)),
+        "C": (("B", 1), ("D", 4), ("E", 5)),
         "D": (),
-        "E": (('D', 1), ),
+        "E": (("D", 1),),
     }
 
     def _neighbors(self, node: Node) -> list[tuple[Any, Any]]:
-        return [(self.node[name], cost)
-                for name, cost in network.neighbor[node.name]]
+        return [(self.node[name], cost) for name, cost in network.neighbor[node.name]]
 
     def _display(self, curr_node: Node) -> None:
         pass
